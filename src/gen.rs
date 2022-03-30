@@ -48,7 +48,7 @@ impl Lattice {
         Self { points, triangles }
     }
 
-    pub fn into_quad(self) -> Quad {
+    pub fn into_quad(self) -> QuadMesh {
         let noise = OpenSimplex::new();
         let color: [f32; 3] = rand::thread_rng().gen();
         let color: Vector3<f32> = color.into();
@@ -94,13 +94,14 @@ impl Lattice {
             sph * (1.0 + elevation * 0.0)
         }
 
-        Quad {
+        QuadMesh {
             vertices,
             triangles: self.triangles,
         }
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum Face {
     North,
     South,
@@ -123,12 +124,12 @@ impl Face {
     }
 }
 
-pub struct Quad {
+pub struct QuadMesh {
     vertices: Vec<Vertex>,
     triangles: Vec<[u16; 3]>,
 }
 
-impl Quad {
+impl QuadMesh {
     pub fn into_mesh(self, renderer: &State) -> Mesh {
         renderer.create_mesh(&self.vertices, &self.triangles)
     }

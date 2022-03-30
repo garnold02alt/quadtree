@@ -249,7 +249,6 @@ impl State {
 
 pub struct Mesh {
     vertices: Buffer,
-
     triangles: Buffer,
     triangles_len: u32,
 }
