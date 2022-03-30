@@ -3,8 +3,10 @@ mod gen;
 mod input;
 mod render;
 
+use std::rc::Rc;
+
 use camera::Camera;
-use cgmath::vec2;
+use cgmath::{vec2, Vector2, Zero};
 use input::Input;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
@@ -20,6 +22,14 @@ fn main() {
     let mut renderer = render::init(&window);
     let mut input = Input::default();
     let mut camera = Camera::default();
+    let meshes = [Rc::new(gen::quad_mesh(
+        gen::Info {
+            facing: gen::Facing::South,
+            scale: 1.0,
+            offset: Vector2::zero(),
+        },
+        &renderer,
+    ))];
 
     event_loop.run(move |event, _, flow| {
         *flow = ControlFlow::Poll;
@@ -64,7 +74,7 @@ fn main() {
 
             Event::MainEventsCleared => {
                 camera::control(&input, &mut camera);
-                renderer.render(&camera, &[]);
+                renderer.render(&camera, &meshes);
                 input.process();
             }
 
