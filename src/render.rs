@@ -1,7 +1,7 @@
 use std::{iter::once, mem::size_of, rc::Rc};
 
 use bytemuck::{cast_slice, Pod, Zeroable};
-use cgmath::{Matrix4, Vector3};
+use cgmath::Vector3;
 use futures_lite::future;
 use wgpu::{
     include_wgsl,
@@ -262,10 +262,6 @@ pub struct Vertex {
 
 unsafe impl Zeroable for Vertex {}
 unsafe impl Pod for Vertex {}
-
-fn flatten_matrix(matrix: Matrix4<f32>) -> [[f32; 4]; 4] {
-    matrix.into()
-}
 
 fn create_depth_buffer(device: &Device, width: u32, height: u32) -> TextureView {
     let size = Extent3d {

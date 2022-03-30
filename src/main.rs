@@ -1,13 +1,14 @@
 mod camera;
+mod gen;
 mod input;
 mod render;
 
 use std::rc::Rc;
 
 use camera::Camera;
-use cgmath::{vec2, vec3};
+use cgmath::vec2;
+use gen::Lattice;
 use input::Input;
-use render::Vertex;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::{Event, KeyboardInput, MouseScrollDelta, WindowEvent},
@@ -22,23 +23,7 @@ fn main() {
     let mut input = Input::default();
     let mut camera = Camera::default();
 
-    let mesh = Rc::new(renderer.create_mesh(
-        &[
-            Vertex {
-                position: vec3(0.0, 0.0, 0.0),
-                normal: vec3(0.0, 0.0, 1.0),
-            },
-            Vertex {
-                position: vec3(1.0, 0.0, 0.0),
-                normal: vec3(0.0, 0.0, 1.0),
-            },
-            Vertex {
-                position: vec3(0.0, 1.0, 0.0),
-                normal: vec3(0.0, 0.0, 1.0),
-            },
-        ],
-        &[[0, 1, 2]],
-    ));
+    let mesh = Rc::new(Lattice::new().into_mesh(&renderer));
 
     event_loop.run(move |event, _, flow| {
         *flow = ControlFlow::Poll;
