@@ -18,11 +18,11 @@ use winit::{
 fn main() {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::default().build(&event_loop).unwrap();
-    let render_state = render::init(&window);
+    let mut renderer = render::init(&window);
     let mut input = Input::default();
     let mut camera = Camera::default();
 
-    let mesh = Rc::new(render_state.create_mesh(
+    let mesh = Rc::new(renderer.create_mesh(
         &[
             Vertex {
                 position: vec3(0.0, 0.0, 0.0),
@@ -49,7 +49,7 @@ fn main() {
                 }
 
                 WindowEvent::Resized(PhysicalSize { width, height }) => {
-                    render_state.configure(width, height);
+                    renderer.configure(width, height);
                     camera.recalc(width, height);
                 }
 
@@ -83,7 +83,7 @@ fn main() {
 
             Event::MainEventsCleared => {
                 camera::control(&input, &mut camera);
-                render_state.render(&camera, &[mesh.clone()]);
+                renderer.render(&camera, &[mesh.clone()]);
                 input.process();
             }
 

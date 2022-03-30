@@ -8,12 +8,14 @@ use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
     vertex_attr_array, Backends, BindGroup, BindGroupDescriptor, BindGroupEntry,
     BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingResource, BindingType, Buffer,
-    BufferBinding, BufferBindingType, BufferUsages, Color, Device, DeviceDescriptor, Face,
-    Features, FragmentState, FrontFace, IndexFormat, Instance, Limits, LoadOp, MultisampleState,
-    Operations, PipelineLayoutDescriptor, PolygonMode, PresentMode, PrimitiveState,
-    PrimitiveTopology, Queue, RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline,
-    RenderPipelineDescriptor, RequestAdapterOptions, ShaderStages, Surface, SurfaceConfiguration,
-    TextureFormat, TextureUsages, VertexBufferLayout, VertexState, VertexStepMode,
+    BufferBinding, BufferBindingType, BufferUsages, Color, DepthBiasState, DepthStencilState,
+    Device, DeviceDescriptor, Extent3d, Face, Features, FragmentState, FrontFace, IndexFormat,
+    Instance, Limits, LoadOp, MultisampleState, Operations, PipelineLayoutDescriptor, PolygonMode,
+    PresentMode, PrimitiveState, PrimitiveTopology, Queue, RenderPassColorAttachment,
+    RenderPassDepthStencilAttachment, RenderPassDescriptor, RenderPipeline,
+    RenderPipelineDescriptor, RequestAdapterOptions, ShaderStages, StencilState, Surface,
+    SurfaceConfiguration, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+    TextureView, VertexBufferLayout, VertexState, VertexStepMode,
 };
 use winit::window::Window;
 
@@ -27,6 +29,7 @@ pub struct State {
     pipeline: RenderPipeline,
     camera_buffer: Buffer,
     camera_group: BindGroup,
+    depth_buffer: TextureView,
 }
 
 pub fn init(window: &Window) -> State {
@@ -98,7 +101,13 @@ pub fn init(window: &Window) -> State {
             polygon_mode: PolygonMode::Fill,
             conservative: false,
         },
-        depth_stencil: None,
+        depth_stencil: Some(DepthStencilState {
+            format: TextureFormat::Depth32Float,
+            depth_write_enabled: true,
+            depth_compare: wgpu::CompareFunction::LessEqual,
+            stencil: StencilState::default(),
+            bias: DepthBiasState::default(),
+        }),
         multisample: MultisampleState {
             count: 1,
             mask: !0,
@@ -112,6 +121,8 @@ pub fn init(window: &Window) -> State {
         multiview: None,
     });
 
+    let depth_buffer = create_depth_buffer(&device, 1, 1);
+
     State {
         surface,
         format,
@@ -120,6 +131,7 @@ pub fn init(window: &Window) -> State {
         pipeline,
         camera_buffer,
         camera_group,
+        depth_buffer,
     }
 }
 
@@ -160,7 +172,7 @@ struct InitDevice {
 }
 
 impl State {
-    pub fn configure(&self, width: u32, height: u32) {
+    pub fn configure(&mut self, width: u32, height: u32) {
         self.surface.configure(
             &self.device,
             &SurfaceConfiguration {
@@ -171,6 +183,8 @@ impl State {
                 present_mode: PresentMode::Fifo,
             },
         );
+
+        self.depth_buffer = create_depth_buffer(&self.device, width, height);
     }
 
     pub fn render(&self, camera: &Camera, meshes: &[Rc<Mesh>]) {
@@ -195,7 +209,14 @@ impl State {
                         store: true,
                     },
                 }],
-                depth_stencil_attachment: None,
+                depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+                    view: &self.depth_buffer,
+                    depth_ops: Some(Operations {
+                        load: LoadOp::Clear(1.0),
+                        store: true,
+                    }),
+                    stencil_ops: None,
+                }),
             });
 
             pass.set_pipeline(&self.pipeline);
@@ -247,4 +268,24 @@ unsafe impl Pod for Vertex {}
 
 fn flatten_matrix(matrix: Matrix4<f32>) -> [[f32; 4]; 4] {
     matrix.into()
+}
+
+fn create_depth_buffer(device: &Device, width: u32, height: u32) -> TextureView {
+    let size = Extent3d {
+        width,
+        height,
+        depth_or_array_layers: 1,
+    };
+
+    let texture = device.create_texture(&TextureDescriptor {
+        label: None,
+        size,
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: TextureDimension::D2,
+        format: TextureFormat::Depth32Float,
+        usage: TextureUsages::RENDER_ATTACHMENT,
+    });
+
+    texture.create_view(&Default::default())
 }
