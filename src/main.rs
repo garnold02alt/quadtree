@@ -1,12 +1,16 @@
+mod camera;
+mod input;
 mod render;
 
 use std::rc::Rc;
 
-use cgmath::vec3;
+use camera::Camera;
+use cgmath::{vec2, vec3};
+use input::Input;
 use render::Vertex;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
-    event::{Event, KeyboardInput, WindowEvent},
+    event::{Event, KeyboardInput, MouseScrollDelta, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
@@ -15,6 +19,8 @@ fn main() {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::default().build(&event_loop).unwrap();
     let render_state = render::init(&window);
+    let mut input = Input::default();
+    let mut camera = Camera::default();
 
     let mesh = Rc::new(render_state.create_mesh(
         &[
@@ -41,9 +47,12 @@ fn main() {
                 WindowEvent::CloseRequested => {
                     *flow = ControlFlow::Exit;
                 }
+
                 WindowEvent::Resized(PhysicalSize { width, height }) => {
                     render_state.configure(width, height);
+                    camera.recalc(width, height);
                 }
+
                 WindowEvent::KeyboardInput {
                     input:
                         KeyboardInput {
@@ -52,16 +61,32 @@ fn main() {
                             ..
                         },
                     ..
-                } => {}
+                } => input.key(key, state),
+
                 WindowEvent::CursorMoved {
                     position: PhysicalPosition { x, y },
                     ..
-                } => {}
+                } => input.movement(vec2(x as f32, y as f32)),
+
+                WindowEvent::MouseWheel { delta, .. } => {
+                    let delta = match delta {
+                        MouseScrollDelta::LineDelta(_, delta) => delta,
+                        MouseScrollDelta::PixelDelta(PhysicalPosition { y, .. }) => y as f32,
+                    };
+                    input.scroll(delta);
+                }
+
+                WindowEvent::MouseInput { button, state, .. } => input.button(button, state),
+
                 _ => (),
             },
+
             Event::MainEventsCleared => {
-                render_state.render(&[mesh.clone()]);
+                camera::control(&input, &mut camera);
+                render_state.render(&camera, &[mesh.clone()]);
+                input.process();
             }
+
             _ => (),
         }
     });

@@ -14,10 +14,17 @@ struct Vertex {
     normal: vec3<f32>;
 };
 
+struct Camera {
+    matrix: mat4x4<f32>;
+};
+
+[[group(0), binding(0)]]
+var<uniform> camera: Camera;
+
 [[stage(vertex)]]
 fn vertex(attribs: Attribs) -> Vertex {
     var vertex: Vertex;
-    vertex.position = vec4<f32>(attribs.position, 1.0);
+    vertex.position = camera.matrix * vec4<f32>(attribs.position, 1.0);
     vertex.normal = attribs.normal;
     return vertex;
 }

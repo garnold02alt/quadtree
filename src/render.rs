@@ -1,19 +1,23 @@
 use std::{iter::once, mem::size_of, rc::Rc};
 
 use bytemuck::{cast_slice, Pod, Zeroable};
-use cgmath::Vector3;
+use cgmath::{Matrix4, Vector3};
 use futures_lite::future;
 use wgpu::{
     include_wgsl,
     util::{BufferInitDescriptor, DeviceExt},
-    vertex_attr_array, Backends, Buffer, BufferUsages, Color, Device, DeviceDescriptor, Face,
+    vertex_attr_array, Backends, BindGroup, BindGroupDescriptor, BindGroupEntry,
+    BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingResource, BindingType, Buffer,
+    BufferBinding, BufferBindingType, BufferUsages, Color, Device, DeviceDescriptor, Face,
     Features, FragmentState, FrontFace, IndexFormat, Instance, Limits, LoadOp, MultisampleState,
     Operations, PipelineLayoutDescriptor, PolygonMode, PresentMode, PrimitiveState,
     PrimitiveTopology, Queue, RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline,
-    RenderPipelineDescriptor, RequestAdapterOptions, Surface, SurfaceConfiguration, TextureFormat,
-    TextureUsages, VertexBufferLayout, VertexState, VertexStepMode,
+    RenderPipelineDescriptor, RequestAdapterOptions, ShaderStages, Surface, SurfaceConfiguration,
+    TextureFormat, TextureUsages, VertexBufferLayout, VertexState, VertexStepMode,
 };
 use winit::window::Window;
+
+use crate::camera::Camera;
 
 pub struct State {
     surface: Surface,
@@ -21,6 +25,8 @@ pub struct State {
     device: Device,
     queue: Queue,
     pipeline: RenderPipeline,
+    camera_buffer: Buffer,
+    camera_group: BindGroup,
 }
 
 pub fn init(window: &Window) -> State {
@@ -31,11 +37,44 @@ pub fn init(window: &Window) -> State {
 
     let shader = device.create_shader_module(&include_wgsl!("shader.wgsl"));
 
+    let camera_buffer = device.create_buffer_init(&BufferInitDescriptor {
+        label: None,
+        contents: &[0; 64],
+        usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+    });
+
+    let camera_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+        label: None,
+        entries: &[BindGroupLayoutEntry {
+            binding: 0,
+            visibility: ShaderStages::VERTEX,
+            ty: BindingType::Buffer {
+                ty: BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: None,
+            },
+            count: None,
+        }],
+    });
+
+    let camera_group = device.create_bind_group(&BindGroupDescriptor {
+        label: None,
+        layout: &camera_group_layout,
+        entries: &[BindGroupEntry {
+            binding: 0,
+            resource: BindingResource::Buffer(BufferBinding {
+                buffer: &camera_buffer,
+                offset: 0,
+                size: None,
+            }),
+        }],
+    });
+
     let pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
         label: None,
         layout: Some(&device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: None,
-            bind_group_layouts: &[],
+            bind_group_layouts: &[&camera_group_layout],
             push_constant_ranges: &[],
         })),
         vertex: VertexState {
@@ -79,6 +118,8 @@ pub fn init(window: &Window) -> State {
         device,
         queue,
         pipeline,
+        camera_buffer,
+        camera_group,
     }
 }
 
@@ -132,7 +173,13 @@ impl State {
         );
     }
 
-    pub fn render(&self, meshes: &[Rc<Mesh>]) {
+    pub fn render(&self, camera: &Camera, meshes: &[Rc<Mesh>]) {
+        self.queue.write_buffer(
+            &self.camera_buffer,
+            0,
+            cast_slice(&flatten_matrix(camera.matrix())),
+        );
+
         let frame = self.surface.get_current_texture().unwrap();
         let view = frame.texture.create_view(&Default::default());
         let mut encoder = self.device.create_command_encoder(&Default::default());
@@ -152,6 +199,7 @@ impl State {
             });
 
             pass.set_pipeline(&self.pipeline);
+            pass.set_bind_group(0, &self.camera_group, &[]);
             for mesh in meshes {
                 pass.set_vertex_buffer(0, mesh.vertices.slice(..));
                 pass.set_index_buffer(mesh.triangles.slice(..), IndexFormat::Uint16);
@@ -196,3 +244,7 @@ pub struct Vertex {
 
 unsafe impl Zeroable for Vertex {}
 unsafe impl Pod for Vertex {}
+
+fn flatten_matrix(matrix: Matrix4<f32>) -> [[f32; 4]; 4] {
+    matrix.into()
+}
