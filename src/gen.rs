@@ -3,6 +3,7 @@
 
 use cgmath::{vec2, vec3, InnerSpace, Vector2, Vector3, Zero};
 use noise::{NoiseFn, OpenSimplex};
+use rand::Rng;
 
 use crate::render::{Mesh, State, Vertex};
 
@@ -47,6 +48,8 @@ impl Lattice {
 
     pub fn into_quad(self) -> Quad {
         let noise = OpenSimplex::new();
+        let color: [f32; 3] = rand::thread_rng().gen();
+        let color: Vector3<f32> = color.into();
 
         let vertices = self
             .points
@@ -58,6 +61,7 @@ impl Lattice {
                 Vertex {
                     position: mkpoint(spherical, &noise).cast().unwrap(),
                     normal: spherical.cast().unwrap(),
+                    color,
                 }
             })
             .collect::<Vec<_>>();

@@ -4,6 +4,9 @@ struct Attribs {
 
     [[location(1)]]
     normal: vec3<f32>;
+
+    [[location(2)]]
+    color: vec3<f32>;
 };
 
 struct Vertex {
@@ -18,6 +21,9 @@ struct Vertex {
 
     [[location(2)]]
     camera_position: vec3<f32>;
+
+    [[location(3)]]
+    color: vec3<f32>;
 };
 
 struct Camera {
@@ -35,6 +41,7 @@ fn vertex(attribs: Attribs) -> Vertex {
     vertex.normal = attribs.normal;
     vertex.camera_position = (camera.view_to_world * vec4<f32>(0.0, 0.0, 0.0, 1.0)).xyz;
     vertex.world_position = attribs.position;
+    vertex.color = attribs.color;
     return vertex;
 }
 
@@ -49,6 +56,6 @@ fn fragment(vertex: Vertex) -> Fragment {
     var light_intensity = max(dot(light_dir, vertex.normal), 0.0);
 
     var fragment: Fragment;
-    fragment.color = vec4<f32>(light_intensity);
+    fragment.color = vec4<f32>(vertex.color * light_intensity, 1.0);
     return fragment;
 }
