@@ -49,6 +49,6 @@ fn fragment(vertex: Vertex) -> Fragment {
     var light_intensity = max(dot(light_dir, vertex.normal), 0.0);
 
     var fragment: Fragment;
-    fragment.color = vec4<f32>(light_intensity + 0.1);
+    fragment.color = vec4<f32>(light_intensity);
     return fragment;
 }

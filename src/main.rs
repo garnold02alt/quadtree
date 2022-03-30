@@ -23,7 +23,15 @@ fn main() {
     let mut input = Input::default();
     let mut camera = Camera::default();
 
-    let mesh = Rc::new(Lattice::new(Face::North).into_quad().into_mesh(&renderer));
+    let faces = [
+        Lattice::new(Face::North),
+        Lattice::new(Face::South),
+        Lattice::new(Face::East),
+        Lattice::new(Face::West),
+        Lattice::new(Face::Top),
+        Lattice::new(Face::Bottom),
+    ]
+    .map(|l| Rc::new(l.into_quad().into_mesh(&renderer)));
 
     event_loop.run(move |event, _, flow| {
         *flow = ControlFlow::Poll;
@@ -68,7 +76,7 @@ fn main() {
 
             Event::MainEventsCleared => {
                 camera::control(&input, &mut camera);
-                renderer.render(&camera, &[mesh.clone()]);
+                renderer.render(&camera, &faces);
                 input.process();
             }
 
