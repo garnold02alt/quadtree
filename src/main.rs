@@ -2,12 +2,13 @@ mod camera;
 mod gen;
 mod input;
 mod render;
+mod tree;
 
 use std::rc::Rc;
 
 use camera::Camera;
 use cgmath::vec2;
-use gen::{Face, Lattice};
+use gen::{Face, Lattice, Quadrant::*};
 use input::Input;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
@@ -24,12 +25,18 @@ fn main() {
     let mut camera = Camera::default();
 
     let faces = [
-        Lattice::new(Face::North),
-        Lattice::new(Face::South),
-        Lattice::new(Face::East),
-        Lattice::new(Face::West),
-        Lattice::new(Face::Top),
-        Lattice::new(Face::Bottom),
+        Lattice::new(Face::North, &[]),
+        Lattice::new(Face::South, &[UL, UL]),
+        Lattice::new(Face::South, &[UL, UR]),
+        Lattice::new(Face::South, &[UL, DL]),
+        Lattice::new(Face::South, &[UL, DR]),
+        Lattice::new(Face::South, &[UR]),
+        Lattice::new(Face::South, &[DL]),
+        Lattice::new(Face::South, &[DR]),
+        Lattice::new(Face::East, &[]),
+        Lattice::new(Face::West, &[]),
+        Lattice::new(Face::Top, &[]),
+        Lattice::new(Face::Bottom, &[]),
     ]
     .map(|l| Rc::new(l.into_quad().into_mesh(&renderer)));
 
