@@ -1,7 +1,7 @@
 #![allow(clippy::needless_range_loop)]
 #![allow(clippy::new_without_default)]
 
-use cgmath::{vec2, vec3, Vector2, Vector3, Zero};
+use cgmath::{vec2, vec3, InnerSpace, Vector2, Vector3, Zero};
 
 use crate::render::{Mesh, State, Vertex};
 
@@ -11,7 +11,7 @@ const T_COUNT: usize = LATTICE_LEN * LATTICE_LEN * 2;
 
 pub struct Lattice {
     points: [[Vector3<f32>; P_COUNT]; P_COUNT],
-    triangles: [[u16; 3]; T_COUNT],
+    triangles: Vec<[u16; 3]>,
 }
 
 impl Lattice {
@@ -27,7 +27,7 @@ impl Lattice {
             }
         }
 
-        let mut triangles = [[0u16; 3]; T_COUNT];
+        let mut triangles = Vec::with_capacity(T_COUNT);
 
         for y in 0..LATTICE_LEN {
             for x in 0..LATTICE_LEN {
@@ -36,26 +36,32 @@ impl Lattice {
                 let i2 = ((y + 1) * P_COUNT + x + 1) as u16;
                 let i3 = ((y + 1) * P_COUNT + x) as u16;
 
-                triangles[(y * LATTICE_LEN + x) * 2] = [i0, i1, i2];
-                triangles[(y * LATTICE_LEN + x) * 2 + 1] = [i0, i2, i3];
+                triangles.push([i0, i1, i2]);
+                triangles.push([i0, i2, i3]);
             }
         }
 
         Self { points, triangles }
     }
 
-    pub fn into_mesh(self, renderer: &State) -> Mesh {
+    pub fn into_quad(self) -> Quad {
         let vertices = self
             .points
             .into_iter()
             .flatten()
-            .map(|point| Vertex {
-                position: point,
-                normal: vec3(0.0, 0.0, 1.0),
+            .map(|point| {
+                let spherical = point.normalize();
+                Vertex {
+                    position: spherical,
+                    normal: spherical,
+                }
             })
             .collect::<Vec<_>>();
 
-        renderer.create_mesh(&vertices, &self.triangles)
+        Quad {
+            vertices,
+            triangles: self.triangles,
+        }
     }
 }
 
@@ -71,12 +77,23 @@ pub enum Face {
 impl Face {
     fn orient(&self, flat: Vector2<f32>) -> Vector3<f32> {
         match self {
-            Self::North => vec3(flat.x, flat.y, -1.0),
-            Self::South => vec3(-flat.x, flat.y, 1.0),
+            Self::North => vec3(-flat.x, flat.y, -1.0),
+            Self::South => vec3(flat.x, flat.y, 1.0),
             Self::East => vec3(-1.0, flat.y, flat.x),
             Self::West => vec3(1.0, flat.y, -flat.x),
             Self::Top => vec3(-flat.x, 1.0, flat.y),
             Self::Bottom => vec3(flat.x, -1.0, flat.y),
         }
+    }
+}
+
+pub struct Quad {
+    vertices: Vec<Vertex>,
+    triangles: Vec<[u16; 3]>,
+}
+
+impl Quad {
+    pub fn into_mesh(self, renderer: &State) -> Mesh {
+        renderer.create_mesh(&self.vertices, &self.triangles)
     }
 }

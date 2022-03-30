@@ -23,7 +23,7 @@ fn main() {
     let mut input = Input::default();
     let mut camera = Camera::default();
 
-    let mesh = Rc::new(Lattice::new(Face::Bottom).into_mesh(&renderer));
+    let mesh = Rc::new(Lattice::new(Face::North).into_quad().into_mesh(&renderer));
 
     event_loop.run(move |event, _, flow| {
         *flow = ControlFlow::Poll;
