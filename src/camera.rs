@@ -1,3 +1,4 @@
+use bytemuck::{Pod, Zeroable};
 use cgmath::{
     perspective, vec2, vec3, Deg, Matrix3, Matrix4, SquareMatrix, Transform, Vector2, Vector3,
 };
@@ -29,12 +30,17 @@ impl Camera {
         self.projection = perspective(Deg(80.0), width / height, 0.01, 512.0);
     }
 
-    pub fn matrix(&self) -> Matrix4<f32> {
+    pub fn matrices(&self) -> Matrices {
         let view_to_world = Matrix4::from_translation(self.position)
             * Matrix4::from_angle_y(Deg(self.rotation.y))
             * Matrix4::from_angle_x(Deg(self.rotation.x));
 
-        self.projection * view_to_world.inverse_transform().unwrap()
+        let world_to_clip = self.projection * view_to_world.inverse_transform().unwrap();
+
+        Matrices {
+            world_to_clip,
+            view_to_world,
+        }
     }
 
     pub fn move_forward(&mut self, delta: f32) {
@@ -134,3 +140,13 @@ pub fn control(input: &Input, camera: &mut Camera) {
 
     camera.look(input.mouse_delta(), delta);
 }
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct Matrices {
+    world_to_clip: Matrix4<f32>,
+    view_to_world: Matrix4<f32>,
+}
+
+unsafe impl Zeroable for Matrices {}
+unsafe impl Pod for Matrices {}

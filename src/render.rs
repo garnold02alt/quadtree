@@ -19,7 +19,7 @@ use wgpu::{
 };
 use winit::window::Window;
 
-use crate::camera::Camera;
+use crate::camera::{Camera, Matrices};
 
 pub struct State {
     surface: Surface,
@@ -42,7 +42,7 @@ pub fn init(window: &Window) -> State {
 
     let camera_buffer = device.create_buffer_init(&BufferInitDescriptor {
         label: None,
-        contents: &[0; 64],
+        contents: &[0; size_of::<Matrices>()],
         usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
     });
 
@@ -188,11 +188,8 @@ impl State {
     }
 
     pub fn render(&self, camera: &Camera, meshes: &[Rc<Mesh>]) {
-        self.queue.write_buffer(
-            &self.camera_buffer,
-            0,
-            cast_slice(&flatten_matrix(camera.matrix())),
-        );
+        self.queue
+            .write_buffer(&self.camera_buffer, 0, cast_slice(&[camera.matrices()]));
 
         let frame = self.surface.get_current_texture().unwrap();
         let view = frame.texture.create_view(&Default::default());

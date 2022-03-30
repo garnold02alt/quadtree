@@ -26,15 +26,15 @@ fn main() {
         &[
             Vertex {
                 position: vec3(0.0, 0.0, 0.0),
-                normal: vec3(0.0, 0.0, 0.0),
+                normal: vec3(0.0, 0.0, 1.0),
             },
             Vertex {
                 position: vec3(1.0, 0.0, 0.0),
-                normal: vec3(0.0, 0.0, 0.0),
+                normal: vec3(0.0, 0.0, 1.0),
             },
             Vertex {
                 position: vec3(0.0, 1.0, 0.0),
-                normal: vec3(0.0, 0.0, 0.0),
+                normal: vec3(0.0, 0.0, 1.0),
             },
         ],
         &[[0, 1, 2]],
