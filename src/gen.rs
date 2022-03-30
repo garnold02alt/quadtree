@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use cgmath::{vec2, vec3, InnerSpace, MetricSpace, Vector2, Vector3, Zero};
+use noise::{NoiseFn, SuperSimplex};
 use rand::Rng;
 
 use crate::{
@@ -8,14 +9,17 @@ use crate::{
     tree::Facing,
 };
 
-const L_QUADS: usize = 16;
+pub const SCALE: f32 = 100.0;
+
+const L_QUADS: usize = 32;
 const L_POINTS: usize = L_QUADS + 1;
 const FLAT_SCALAR: f32 = 2.0 / L_QUADS as f32;
 
 pub fn quad_mesh(info: Info, renderer: &State) -> QuadInfo {
     let mut rng = rand::thread_rng();
-    let color: Vector3<f32> = From::<[f32; 3]>::from(rng.gen());
+    let noise = ElevationSampler::new(4, 2.0, 2.5, 0.1, 0.3);
 
+    let color: Vector3<f32> = From::<[f32; 3]>::from(rng.gen());
     let mut vertices = Vec::with_capacity(L_POINTS * L_POINTS);
     let mut triangles = Vec::with_capacity(L_QUADS * L_QUADS * 2);
     let mut points = Vec::new();
@@ -27,9 +31,12 @@ pub fn quad_mesh(info: Info, renderer: &State) -> QuadInfo {
             let oriented = info.facing.orient(offset_scaled);
             let normalized = oriented.normalize();
 
-            points.push(normalized);
+            let elevation = noise.sample(normalized);
+            let position = normalized * SCALE + normalized * elevation * SCALE;
+
+            points.push(position);
             vertices.push(Vertex {
-                position: normalized,
+                position,
                 normal: Vector3::zero(),
                 color,
             });
@@ -118,5 +125,46 @@ impl PointSampler {
 
     pub fn empty() -> Self {
         Self { points: Vec::new() }
+    }
+}
+
+struct ElevationSampler {
+    noise: SuperSimplex,
+    octaves: u32,
+
+    init_freq: f32,
+    delta_freq: f32,
+
+    init_ampl: f32,
+    delta_ampl: f32,
+}
+
+impl ElevationSampler {
+    pub fn new(oct: u32, fi: f32, fd: f32, ai: f32, ad: f32) -> Self {
+        Self {
+            noise: SuperSimplex::new(),
+            octaves: oct,
+            init_freq: fi,
+            delta_freq: fd,
+            init_ampl: ai,
+            delta_ampl: ad,
+        }
+    }
+
+    pub fn sample(&self, position: Vector3<f32>) -> f32 {
+        let mut freq = self.init_freq;
+        let mut ampl = self.init_ampl;
+        let mut value = 0.0;
+
+        for _ in 0..self.octaves {
+            let coords: [f64; 3] = (position * freq).cast().unwrap().into();
+            let sample = self.noise.get(coords) as f32;
+            value += sample * ampl;
+
+            freq *= self.delta_freq;
+            ampl *= self.delta_ampl;
+        }
+
+        value
     }
 }

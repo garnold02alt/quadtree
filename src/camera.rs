@@ -4,7 +4,7 @@ use cgmath::{
 };
 use winit::event::{MouseButton, VirtualKeyCode};
 
-use crate::input::Input;
+use crate::{gen::SCALE, input::Input};
 
 pub struct Camera {
     position: Vector3<f32>,
@@ -16,7 +16,7 @@ pub struct Camera {
 impl Default for Camera {
     fn default() -> Self {
         Self {
-            position: vec3(0.0, 0.0, 5.0),
+            position: vec3(0.0, 0.0, SCALE * 1.25),
             rotation: vec2(0.0, 0.0),
             projection: Matrix4::identity(),
             speed: 50,

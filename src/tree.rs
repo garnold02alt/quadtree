@@ -6,7 +6,7 @@ use cgmath::{vec2, Vector2, Zero};
 
 use crate::{
     camera::Camera,
-    gen::{self, PointSampler, QuadInfo},
+    gen::{self, PointSampler, QuadInfo, SCALE},
     render::{Mesh, State},
 };
 
@@ -77,7 +77,7 @@ impl Quad {
     fn process(&mut self, camera: &Camera, renderer: &State, info: ProcessInfo) {
         match self {
             Quad::Leaf(qinfo) => {
-                let min_dist = (info.scale * info.scale) * 0.5;
+                let min_dist = (info.scale * info.scale) * SCALE;
                 let dist = qinfo.sampler.distance2(camera.position());
 
                 if dist < min_dist {
@@ -87,7 +87,7 @@ impl Quad {
                 }
             }
             Quad::Branch(children, sampler) => {
-                let max_dist = (info.scale * info.scale) * 0.6;
+                let max_dist = (info.scale * info.scale) * SCALE * 1.5;
                 let dist = sampler.distance2(camera.position());
 
                 if dist > max_dist {
