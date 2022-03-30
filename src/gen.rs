@@ -1,4 +1,6 @@
-use cgmath::{vec2, vec3, InnerSpace, Vector2, Vector3, Zero};
+use std::rc::Rc;
+
+use cgmath::{vec2, vec3, InnerSpace, MetricSpace, Vector2, Vector3, Zero};
 use rand::Rng;
 
 use crate::{
@@ -10,12 +12,13 @@ const L_QUADS: usize = 16;
 const L_POINTS: usize = L_QUADS + 1;
 const FLAT_SCALAR: f32 = 2.0 / L_QUADS as f32;
 
-pub fn quad_mesh(info: Info, renderer: &State) -> Mesh {
+pub fn quad_mesh(info: Info, renderer: &State) -> QuadInfo {
     let mut rng = rand::thread_rng();
     let color: Vector3<f32> = From::<[f32; 3]>::from(rng.gen());
 
     let mut vertices = Vec::with_capacity(L_POINTS * L_POINTS);
     let mut triangles = Vec::with_capacity(L_QUADS * L_QUADS * 2);
+    let mut points = Vec::new();
 
     for y in 0..L_POINTS {
         for x in 0..L_POINTS {
@@ -24,6 +27,7 @@ pub fn quad_mesh(info: Info, renderer: &State) -> Mesh {
             let oriented = info.facing.orient(offset_scaled);
             let normalized = oriented.normalize();
 
+            points.push(normalized);
             vertices.push(Vertex {
                 position: normalized,
                 normal: Vector3::zero(),
@@ -64,7 +68,10 @@ pub fn quad_mesh(info: Info, renderer: &State) -> Mesh {
         vertex.normal = vertex.normal.normalize();
     }
 
-    renderer.create_mesh(&vertices, &triangles)
+    QuadInfo {
+        mesh: Rc::new(renderer.create_mesh(&vertices, &triangles)),
+        sampler: PointSampler { points },
+    }
 }
 
 pub struct Info {
@@ -83,5 +90,33 @@ impl Facing {
             Self::Up => vec3(-vec.x, 1.0, vec.y),
             Self::Down => vec3(vec.x, -1.0, vec.y),
         }
+    }
+}
+
+pub struct QuadInfo {
+    pub mesh: Rc<Mesh>,
+    pub sampler: PointSampler,
+}
+
+pub struct PointSampler {
+    points: Vec<Vector3<f32>>,
+}
+
+impl PointSampler {
+    pub fn distance2(&self, point: Vector3<f32>) -> f32 {
+        let mut shortest = f32::INFINITY;
+
+        for other in &self.points {
+            let dist = point.distance2(*other);
+            if dist < shortest {
+                shortest = dist;
+            }
+        }
+
+        shortest
+    }
+
+    pub fn empty() -> Self {
+        Self { points: Vec::new() }
     }
 }

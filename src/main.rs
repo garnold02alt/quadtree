@@ -4,11 +4,10 @@ mod input;
 mod render;
 mod tree;
 
-use std::rc::Rc;
-
 use camera::Camera;
-use cgmath::{vec2, Vector2, Zero};
+use cgmath::vec2;
 use input::Input;
+use tree::Tree;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::{Event, KeyboardInput, MouseScrollDelta, WindowEvent},
@@ -23,14 +22,7 @@ fn main() {
     let mut renderer = render::init(&window);
     let mut input = Input::default();
     let mut camera = Camera::default();
-    let meshes = [Rc::new(gen::quad_mesh(
-        gen::Info {
-            facing: gen::Facing::South,
-            scale: 1.0,
-            offset: Vector2::zero(),
-        },
-        &renderer,
-    ))];
+    let mut tree = Tree::new(&renderer);
 
     event_loop.run(move |event, _, flow| {
         *flow = ControlFlow::Poll;
@@ -75,6 +67,11 @@ fn main() {
 
             Event::MainEventsCleared => {
                 camera::control(&input, &mut camera);
+                tree.process(&camera, &renderer);
+
+                let mut meshes = Vec::new();
+                tree.collect_meshes(&mut meshes);
+
                 renderer.render(&camera, &meshes);
                 input.process();
             }
