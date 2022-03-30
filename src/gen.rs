@@ -1,7 +1,10 @@
 use cgmath::{vec2, vec3, InnerSpace, Vector2, Vector3, Zero};
 use rand::Rng;
 
-use crate::render::{Mesh, State, Vertex};
+use crate::{
+    render::{Mesh, State, Vertex},
+    tree::Facing,
+};
 
 const L_QUADS: usize = 16;
 const L_POINTS: usize = L_QUADS + 1;
@@ -68,15 +71,6 @@ pub struct Info {
     pub facing: Facing,
     pub scale: f32,
     pub offset: Vector2<f32>,
-}
-
-pub enum Facing {
-    North,
-    South,
-    East,
-    West,
-    Up,
-    Down,
 }
 
 impl Facing {

@@ -2,6 +2,7 @@ mod camera;
 mod gen;
 mod input;
 mod render;
+mod tree;
 
 use std::rc::Rc;
 
