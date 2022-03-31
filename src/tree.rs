@@ -5,8 +5,8 @@ use std::rc::Rc;
 use cgmath::{vec2, Vector2, Zero};
 
 use crate::{
-    camera::Camera,
     gen::{self, PointSampler, QuadInfo, SCALE},
+    orbiter::Orbiter,
     render::{Mesh, State},
 };
 
@@ -37,10 +37,10 @@ impl Tree {
         }
     }
 
-    pub fn process(&mut self, camera: &Camera, renderer: &State) {
+    pub fn process(&mut self, orbiter: &Orbiter, renderer: &State) {
         for root in &mut self.roots {
             root.quad.process(
-                camera,
+                orbiter,
                 renderer,
                 ProcessInfo {
                     facing: root.facing,
@@ -74,11 +74,11 @@ impl Quad {
         }
     }
 
-    fn process(&mut self, camera: &Camera, renderer: &State, info: ProcessInfo) {
+    fn process(&mut self, orbiter: &Orbiter, renderer: &State, info: ProcessInfo) {
         match self {
             Quad::Leaf(qinfo) => {
                 let min_dist = (info.scale * info.scale) * SCALE;
-                let dist = qinfo.sampler.distance2(camera.position());
+                let dist = qinfo.sampler.distance2(orbiter.position());
 
                 if dist < min_dist {
                     let mut sampler = PointSampler::empty();
@@ -88,7 +88,7 @@ impl Quad {
             }
             Quad::Branch(children, sampler) => {
                 let max_dist = (info.scale * info.scale) * SCALE * 1.5;
-                let dist = sampler.distance2(camera.position());
+                let dist = sampler.distance2(orbiter.position());
 
                 if dist > max_dist {
                     self.collapse(renderer, info);
@@ -104,7 +104,7 @@ impl Quad {
 
                 for (child, offset) in children.iter_mut().zip(offsets.into_iter()) {
                     child.process(
-                        camera,
+                        orbiter,
                         renderer,
                         ProcessInfo {
                             facing: info.facing,

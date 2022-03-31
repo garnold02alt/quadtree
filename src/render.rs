@@ -19,7 +19,7 @@ use wgpu::{
 };
 use winit::window::Window;
 
-use crate::camera::{Camera, Matrices};
+use crate::{orbiter::Matrices, orbiter::Orbiter};
 
 pub struct State {
     surface: Surface,
@@ -188,9 +188,9 @@ impl State {
         self.depth_buffer = create_depth_buffer(&self.device, width, height);
     }
 
-    pub fn render(&self, camera: &Camera, meshes: &[Rc<Mesh>]) {
+    pub fn render(&self, orbiter: &Orbiter, meshes: &[Rc<Mesh>]) {
         self.queue
-            .write_buffer(&self.camera_buffer, 0, cast_slice(&[camera.matrices()]));
+            .write_buffer(&self.camera_buffer, 0, cast_slice(&[orbiter.matrices()]));
 
         let frame = self.surface.get_current_texture().unwrap();
         let view = frame.texture.create_view(&Default::default());

@@ -1,12 +1,12 @@
-mod camera;
 mod gen;
 mod input;
+mod orbiter;
 mod render;
 mod tree;
 
-use camera::Camera;
 use cgmath::vec2;
 use input::Input;
+use orbiter::Orbiter;
 use tree::Tree;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
@@ -21,7 +21,7 @@ fn main() {
 
     let mut renderer = render::init(&window);
     let mut input = Input::default();
-    let mut camera = Camera::default();
+    let mut orbiter = Orbiter::default();
     let mut tree = Tree::new(&renderer);
 
     event_loop.run(move |event, _, flow| {
@@ -34,7 +34,7 @@ fn main() {
 
                 WindowEvent::Resized(PhysicalSize { width, height }) => {
                     renderer.configure(width, height);
-                    camera.recalc(width, height);
+                    orbiter.recalc(width, height);
                 }
 
                 WindowEvent::KeyboardInput {
@@ -66,13 +66,13 @@ fn main() {
             },
 
             Event::MainEventsCleared => {
-                camera::control(&input, &mut camera);
-                tree.process(&camera, &renderer);
+                orbiter.process(&input);
+                tree.process(&orbiter, &renderer);
 
                 let mut meshes = Vec::new();
                 tree.collect_meshes(&mut meshes);
 
-                renderer.render(&camera, &meshes);
+                renderer.render(&orbiter, &meshes);
                 input.process();
             }
 
